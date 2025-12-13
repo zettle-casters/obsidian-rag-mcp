@@ -1,0 +1,64 @@
+services:
+  # Neo4j - граф связей между заметками
+  neo4j:
+    image: neo4j:5
+    ports:
+      - "7474:7474"  # Browser UI
+      - "7687:7687"  # Bolt protocol
+    environment:
+      - NEO4J_AUTH=neo4j/test1234
+      - NEO4J_PLUGINS=["apoc"]
+    volumes:
+      - neo4j_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # Qdrant - векторная БД для семантического поиска
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"  # HTTP API
+      - "6334:6334"  # gRPC
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "/qdrant/qdrant", "--version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # Obsidian RAG MCP Server + Agent
+  obsidian-rag:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"  # Agent API
+      - "8001:8001"  # MCP HTTP Server
+    environment:
+      - OBSIDIAN_RAG_NEO4J_URL=bolt://neo4j:test1234@neo4j:7687
+      - OBSIDIAN_RAG_QDRANT_HOST=qdrant
+      - OBSIDIAN_RAG_QDRANT_PORT=6333
+      - OBSIDIAN_RAG_OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OBSIDIAN_RAG_OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - OBSIDIAN_RAG_OPENAI_CHEAP_MODEL=${OPENAI_CHEAP_MODEL:-gpt-4o-mini}
+      - OBSIDIAN_RAG_MAX_RECURSION_DEPTH=${MAX_RECURSION_DEPTH:-3}
+      - OBSIDIAN_RAG_SEARCH_TOP_K=${SEARCH_TOP_K:-5}
+    volumes:
+      - ./vault:/app/vault:ro  # Obsidian vault для инициализации
+      - hf_cache:/app/hf-cache  # Кэш HuggingFace моделей
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+
+volumes:
+  neo4j_data:
+  qdrant_data:
+  hf_cache:
