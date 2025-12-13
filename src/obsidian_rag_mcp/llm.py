@@ -14,7 +14,7 @@ def get_llm(cheap: bool = False) -> ChatOpenAI:
     model = settings.openai_cheap_model if cheap else settings.openai_model
     return ChatOpenAI(
         model=model,
-        openai_base_url=settings.openai_base_url,
+        base_url=settings.openai_base_url,
         api_key=settings.openai_api_key,
         temperature=0,
     )

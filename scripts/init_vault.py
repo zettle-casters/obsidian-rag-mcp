@@ -49,7 +49,7 @@ def main():
         host=settings.qdrant_host,
         port=settings.qdrant_port,
         prefer_grpc=settings.qdrant_prefer_grpc,
-        model_name=settings.embeddings_model,
+        model_name=settings.embeddings_model
     )
 
     vault_path = Path(args.vault_path)

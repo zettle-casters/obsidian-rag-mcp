@@ -1,11 +1,12 @@
 """Main entry point for Obsidian RAG MCP."""
 
 import argparse
-import sys
+from dotenv import load_dotenv
 
 
 def main():
     """Main entry point with CLI argument parsing."""
+    load_dotenv()
     parser = argparse.ArgumentParser(
         description="Obsidian RAG MCP Server and Agent",
         formatter_class=argparse.RawDescriptionHelpFormatter,
