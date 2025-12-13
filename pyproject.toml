@@ -2,4 +2,23 @@
 name = "obsidian-rag-mcp"
 version = "0.1.0"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "langchain-community>=0.4.1",
+    "langchain-huggingface>=1.2.0",
+    "neomodel>=6.0.0",
+    "numpy>=2.3.5",
+    "obsidian-parser",
+    "obsidian-retriever",
+    "pydantic>=2.12.5",
+    "qdrant-client>=1.16.2",
+]
+
+[tool.uv.workspace]
+members = [
+    "obsidian-parser",
+    "ObsidianRetriever",
+]
+
+[tool.uv.sources]
+obsidian-parser = { workspace = true, editable = true }
+obsidian-retriever = { workspace = true, editable = true }

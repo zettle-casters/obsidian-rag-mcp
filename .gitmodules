@@ -1,0 +1,6 @@
+[submodule "ObsidianRetriever"]
+	path = ObsidianRetriever
+	url = git@github.com:zettle-casters/ObsidianRetriever.git
+[submodule "obsidian-parser"]
+	path = obsidian-parser
+	url = git@github.com:zettle-casters/obsidian-parser.git
