@@ -118,9 +118,9 @@ async def agent_stream_endpoint(request: AgentRequest):
                     else:
                         serializable_output[k] = v
 
-                yield f"data: {json.dumps({'node': node_name, 'output': serializable_output})}\n\n"
+                yield f"data: {json.dumps({'node': node_name, 'output': serializable_output}, ensure_ascii=False)}\n\n"
 
-        yield f"data: {json.dumps({'status': 'complete', 'thread_id': thread_id})}\n\n"
+        yield f"data: {json.dumps({'status': 'complete', 'thread_id': thread_id}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 
