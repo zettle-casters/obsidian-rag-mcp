@@ -9,6 +9,7 @@ RAG-система для работы с Obsidian-хранилищами зна
 - **Граф связей** — учитывает wiki-ссылки между заметками для расширения контекста
 - **Рекурсивное расширение контекста** — агент автоматически подтягивает связанные заметки, если информации недостаточно
 - **Множественные vault'ы** — загружайте и работайте с несколькими vault'ами одновременно через UUID
+- **Модульная архитектура** — проект разделен на независимые подмодули для гибкого использования
 
 ## Архитектура
 
@@ -472,23 +473,39 @@ curl -X POST http://localhost:8000/agent \
 ## Структура проекта
 
 ```
-obsidian-rag-mcp/
-├── src/obsidian_rag_mcp/
-│   ├── __init__.py
-│   ├── config.py          # Настройки из ENV
-│   ├── vault_manager.py   # Управление vault'ами через UUID
-│   ├── llm.py             # LLM утилиты
-│   ├── server.py          # MCP Server (stdio)
-│   ├── server_http.py     # MCP Server (HTTP)
-│   ├── agent.py           # LangGraph агент с vault_id
-│   └── api.py             # FastAPI endpoints + /upload
-├── ObsidianRetriever/     # Субмодуль: управление знаниями
-├── obsidian-parser/       # Субмодуль: парсер markdown
-├── docker-compose.yml
-├── Dockerfile
-├── USAGE.md               # Подробное руководство
-└── pyproject.toml
+obsidian-rag-mcp/                    # Главный проект (orchestrator)
+├── main.py                          # Entry point для запуска всех компонентов
+├── docker-compose.yml               # Docker инфраструктура
+├── Dockerfile                       # Контейнер с API и MCP серверами
+├── pyproject.toml                   # UV workspace configuration
+│
+├── obsidian-rag-api/                # 📦 Подмодуль: API и MCP серверы
+│   ├── src/obsidian_rag_api/
+│   │   ├── config.py                # Настройки из ENV
+│   │   ├── vault_manager.py         # Управление vault'ами через UUID
+│   │   ├── llm.py                   # LLM утилиты
+│   │   ├── server.py                # MCP Server (stdio)
+│   │   ├── server_http.py           # MCP Server (HTTP)
+│   │   ├── agent.py                 # LangGraph агент с vault_id
+│   │   └── api.py                   # FastAPI endpoints + /upload
+│   └── pyproject.toml
+│
+├── ObsidianRetriever/               # 📦 Подмодуль: управление знаниями
+│   └── ...                          # Neo4j + Qdrant интеграция
+│
+└── obsidian-parser/                 # 📦 Подмодуль: парсер markdown
+    └── ...                          # Парсинг Obsidian заметок
 ```
+
+### Подмодули
+
+Проект использует **git submodules** и **uv workspace** для модульной архитектуры:
+
+1. **obsidian-rag-api** — API сервер, MCP серверы и LangGraph агент ([README](./obsidian-rag-api/README.md))
+2. **ObsidianRetriever** — взаимодействие с Neo4j и Qdrant
+3. **obsidian-parser** — парсинг markdown файлов Obsidian
+
+Все подмодули автономны и могут использоваться отдельно.
 
 ## Важные замечания
 
@@ -511,4 +528,6 @@ obsidian-rag-mcp/
 - **FastAPI** — REST API
 - **MCP** — Model Context Protocol
 - **OpenAI embeddings** — text-embedding-3-large
+- **uv** — современный менеджер пакетов и workspace manager
+- **Docker Compose** — оркестрация сервисов
 
