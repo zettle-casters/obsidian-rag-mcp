@@ -482,8 +482,6 @@ obsidian-rag-mcp/
 │   ├── server_http.py     # MCP Server (HTTP)
 │   ├── agent.py           # LangGraph агент с vault_id
 │   └── api.py             # FastAPI endpoints + /upload
-├── scripts/
-│   └── init_vault.py      # Инициализация vault (deprecated)
 ├── ObsidianRetriever/     # Субмодуль: управление знаниями
 ├── obsidian-parser/       # Субмодуль: парсер markdown
 ├── docker-compose.yml
