@@ -12,38 +12,24 @@ from pydantic import BaseModel
 from obsidian_retriever.manager import KnowledgeBaseManager
 
 from .config import settings
+from .vault_manager import get_vault_manager
 
 
 # Initialize MCP server
 mcp_server = Server("obsidian-rag")
 
-# Global retriever instance (initialized lazily)
-_retriever: KnowledgeBaseManager | None = None
-
-
-def get_retriever() -> KnowledgeBaseManager:
-    """Get or create the KnowledgeBaseManager instance."""
-    global _retriever
-    if _retriever is None:
-        _retriever = KnowledgeBaseManager(
-            db_url=settings.neo4j_url,
-            host=settings.qdrant_host,
-            port=settings.qdrant_port,
-            prefer_grpc=settings.qdrant_prefer_grpc,
-            model_name=settings.embeddings_model,
-        )
-    return _retriever
-
 
 class ReadNoteInput(BaseModel):
     """Input schema for read_note tool."""
 
+    vault_id: str
     note_id: str
 
 
 class SearchInput(BaseModel):
     """Input schema for search tool."""
 
+    vault_id: str
     query: str
     top_k: int = 5
 
@@ -51,6 +37,7 @@ class SearchInput(BaseModel):
 class ExtendContextInput(BaseModel):
     """Input schema for extend_context_using_nearest tool."""
 
+    vault_id: str
     note_id: str
     query: str
     current_depth: int = 0
@@ -62,24 +49,32 @@ async def list_tools() -> list[Tool]:
     return [
         Tool(
             name="read_note",
-            description="Read a specific note by its ID. Returns the full content of the note with all chunks.",
+            description="Read a specific note by its ID from a vault. Returns the full content of the note with all chunks.",
             inputSchema={
                 "type": "object",
                 "properties": {
+                    "vault_id": {
+                        "type": "string",
+                        "description": "The UUID of the vault to read from",
+                    },
                     "note_id": {
                         "type": "string",
                         "description": "The unique identifier of the note (usually the file path)",
-                    }
+                    },
                 },
-                "required": ["note_id"],
+                "required": ["vault_id", "note_id"],
             },
         ),
         Tool(
             name="search",
-            description="Search for notes by semantic similarity using vector search. Returns the most relevant notes for the given query.",
+            description="Search for notes by semantic similarity using vector search in a specific vault. Returns the most relevant notes for the given query.",
             inputSchema={
                 "type": "object",
                 "properties": {
+                    "vault_id": {
+                        "type": "string",
+                        "description": "The UUID of the vault to search in",
+                    },
                     "query": {
                         "type": "string",
                         "description": "The search query to find relevant notes",
@@ -90,15 +85,19 @@ async def list_tools() -> list[Tool]:
                         "default": 5,
                     },
                 },
-                "required": ["query"],
+                "required": ["vault_id", "query"],
             },
         ),
         Tool(
             name="extend_context_using_nearest",
-            description="Extend context by exploring linked notes. For a given note, finds all connected notes and checks if they contain relevant information for the query.",
+            description="Extend context by exploring linked notes in a vault. For a given note, finds all connected notes and checks if they contain relevant information for the query.",
             inputSchema={
                 "type": "object",
                 "properties": {
+                    "vault_id": {
+                        "type": "string",
+                        "description": "The UUID of the vault",
+                    },
                     "note_id": {
                         "type": "string",
                         "description": "The note ID to extend context from",
@@ -113,7 +112,7 @@ async def list_tools() -> list[Tool]:
                         "default": 0,
                     },
                 },
-                "required": ["note_id", "query"],
+                "required": ["vault_id", "note_id", "query"],
             },
         ),
     ]
@@ -122,7 +121,18 @@ async def list_tools() -> list[Tool]:
 @mcp_server.call_tool()
 async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     """Handle tool calls."""
-    retriever = get_retriever()
+    vault_id = arguments.get("vault_id")
+    if not vault_id:
+        return [TextContent(type="text", text="Error: vault_id is required")]
+
+    retriever = get_vault_manager(vault_id)
+    if not retriever:
+        return [
+            TextContent(
+                type="text",
+                text=f"Error: Vault {vault_id} not found. Please upload a vault first.",
+            )
+        ]
 
     if name == "read_note":
         return await handle_read_note(retriever, arguments)

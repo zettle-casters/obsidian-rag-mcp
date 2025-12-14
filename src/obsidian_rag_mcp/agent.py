@@ -1,4 +1,4 @@
-"""LangGraph agent for Obsidian RAG with recursive context extension."""
+"""LangGraph agent for Obsidian RAG with recursive context extension and multi-vault support."""
 
 import asyncio
 import operator
@@ -10,6 +10,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from obsidian_retriever.manager import KnowledgeBaseManager
 
 from .config import settings
+from .vault_manager import get_vault_manager
 from .llm import (
     reformulate_query,
     generate_answer,
@@ -32,6 +33,7 @@ class AgentState(TypedDict):
 
     # Input
     original_query: str
+    vault_id: str
 
     # Working state
     reformulated_query: str
@@ -44,29 +46,6 @@ class AgentState(TypedDict):
     # Output
     final_answer: str
     status: str
-
-
-def create_retriever() -> KnowledgeBaseManager:
-    """Create a new KnowledgeBaseManager instance."""
-    return KnowledgeBaseManager(
-        db_url=settings.neo4j_url,
-        host=settings.qdrant_host,
-        port=settings.qdrant_port,
-        prefer_grpc=settings.qdrant_prefer_grpc,
-        model_name=settings.embeddings_model,
-    )
-
-
-# Global retriever (lazy initialization)
-_retriever: KnowledgeBaseManager | None = None
-
-
-def get_retriever() -> KnowledgeBaseManager:
-    """Get or create retriever instance."""
-    global _retriever
-    if _retriever is None:
-        _retriever = create_retriever()
-    return _retriever
 
 
 async def reformulate_node(state: AgentState) -> dict:
@@ -84,7 +63,18 @@ async def reformulate_node(state: AgentState) -> dict:
 
 async def search_node(state: AgentState) -> dict:
     """Search for relevant notes using the retriever."""
-    retriever = get_retriever()
+    vault_id = state["vault_id"]
+    retriever = get_vault_manager(vault_id)
+
+    if not retriever:
+        return {
+            "search_results": [],
+            "notes_to_explore": [],
+            "knowledge_base": [],
+            "explored_notes": set(),
+            "status": "error",
+        }
+
     query = state["reformulated_query"] or state["original_query"]
 
     results = retriever.search_notes(query, top_k=settings.search_top_k)
@@ -145,7 +135,15 @@ async def check_context_node(state: AgentState) -> dict:
 
 async def extend_context_node(state: AgentState) -> dict:
     """Extend context by exploring linked notes."""
-    retriever = get_retriever()
+    vault_id = state["vault_id"]
+    retriever = get_vault_manager(vault_id)
+
+    if not retriever:
+        return {
+            "status": "generate",
+            "current_depth": state["current_depth"] + 1,
+        }
+
     query = state["reformulated_query"] or state["original_query"]
     explored = state["explored_notes"]
     current_depth = state["current_depth"]
@@ -299,24 +297,24 @@ def create_agent():
     return graph.compile(checkpointer=memory)
 
 
-# Global agent instance
-_agent = None
+# Global agent instances per vault
+_agents: dict[str, any] = {}
 
 
-def get_agent():
-    """Get or create agent instance."""
-    global _agent
-    if _agent is None:
-        _agent = create_agent()
-    return _agent
+def get_agent_for_vault(vault_id: str):
+    """Get or create agent instance for a specific vault."""
+    if vault_id not in _agents:
+        _agents[vault_id] = create_agent()
+    return _agents[vault_id]
 
 
-async def run_agent(query: str, thread_id: str = "default") -> dict:
-    """Run the agent with a query."""
-    agent = get_agent()
+async def run_agent_with_vault(query: str, vault_id: str, thread_id: str = "default") -> dict:
+    """Run the agent with a query for a specific vault."""
+    agent = get_agent_for_vault(vault_id)
 
     initial_state = {
         "original_query": query,
+        "vault_id": vault_id,
         "reformulated_query": "",
         "search_results": [],
         "knowledge_base": [],

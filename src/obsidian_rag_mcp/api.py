@@ -1,28 +1,30 @@
 """FastAPI application with /agent endpoint for Obsidian RAG."""
 
 import uuid
+import tempfile
+import json
+from pathlib import Path
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from .agent import run_agent, get_agent
+from .agent import run_agent_with_vault, get_agent_for_vault
+from .vault_manager import upload_vault, get_vault_manager, list_vaults
 from .config import settings
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan - initialize agent on startup."""
-    # Initialize agent
-    get_agent()
+    """Application lifespan."""
     yield
 
 
 app = FastAPI(
     title="Obsidian RAG Agent",
-    description="RAG agent for querying Obsidian knowledge base",
-    version="0.1.0",
+    description="RAG agent for querying Obsidian knowledge base with multi-vault support",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -31,6 +33,7 @@ class AgentRequest(BaseModel):
     """Request model for the agent endpoint."""
 
     query: str
+    vault_id: str
     thread_id: str | None = None
 
 
@@ -43,6 +46,15 @@ class AgentResponse(BaseModel):
     notes_used: int
     max_depth_reached: int
     thread_id: str
+    vault_id: str
+
+
+class UploadResponse(BaseModel):
+    """Response model for the upload endpoint."""
+
+    vault_id: str
+    message: str
+    status: str
 
 
 @app.get("/health")
@@ -51,22 +63,98 @@ async def health():
     return {"status": "healthy"}
 
 
+@app.post("/upload", response_model=UploadResponse)
+async def upload_endpoint(
+    file: UploadFile = File(...),
+    include_paths: str = Form(""),
+    exclude_paths: str = Form(""),
+    chunk_size: int = Form(500),
+):
+    """
+    Upload and initialize a vault from a ZIP file.
+
+    Args:
+        file: ZIP file containing the Obsidian vault
+        include_paths: Comma-separated list of paths to include (optional)
+        exclude_paths: Comma-separated list of paths to exclude (optional)
+        chunk_size: Maximum chunk size in characters (default: 500)
+
+    Returns:
+        vault_id: UUID identifier for the uploaded vault
+    """
+    # Validate file type
+    if not file.filename.endswith(".zip"):
+        raise HTTPException(
+            status_code=400,
+            detail="Only ZIP files are supported. Please upload a .zip file.",
+        )
+
+    # Parse include/exclude paths
+    include_list = [p.strip() for p in include_paths.split(",") if p.strip()]
+    exclude_list = [p.strip() for p in exclude_paths.split(",") if p.strip()]
+
+    try:
+        # Save uploaded file to temporary location
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp_file:
+            content = await file.read()
+            tmp_file.write(content)
+            tmp_path = tmp_file.name
+
+        # Upload and initialize vault
+        vault_id = await upload_vault(
+            zip_file_path=tmp_path,
+            include_paths=include_list,
+            exclude_paths=exclude_list,
+            chunk_size=chunk_size,
+        )
+
+        # Clean up temporary file
+        Path(tmp_path).unlink()
+
+        return UploadResponse(
+            vault_id=vault_id,
+            message=f"Vault uploaded successfully. Use this vault_id in your queries.",
+            status="success",
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload vault: {str(e)}")
+
+
+@app.get("/vaults")
+async def list_vaults_endpoint():
+    """List all uploaded vaults."""
+    vaults = list_vaults()
+    return {"vaults": vaults, "count": len(vaults)}
+
+
 @app.post("/agent", response_model=AgentResponse)
 async def agent_endpoint(request: AgentRequest):
     """
-    Query the Obsidian RAG agent.
+    Query the Obsidian RAG agent for a specific vault.
 
     The agent will:
     1. Reformulate the query for better search
-    2. Search for relevant notes
+    2. Search for relevant notes in the specified vault
     3. Check if context is sufficient
     4. Recursively extend context by exploring linked notes if needed
     5. Generate a final answer based on accumulated knowledge
     """
+    # Verify vault exists
+    if not get_vault_manager(request.vault_id):
+        raise HTTPException(
+            status_code=404,
+            detail=f"Vault {request.vault_id} not found. Please upload a vault first using /upload.",
+        )
+
     thread_id = request.thread_id or str(uuid.uuid4())
 
     try:
-        result = await run_agent(request.query, thread_id)
+        result = await run_agent_with_vault(
+            query=request.query,
+            vault_id=request.vault_id,
+            thread_id=thread_id,
+        )
         return AgentResponse(
             query=result["query"],
             reformulated_query=result["reformulated_query"],
@@ -74,6 +162,7 @@ async def agent_endpoint(request: AgentRequest):
             notes_used=result["notes_used"],
             max_depth_reached=result["max_depth_reached"],
             thread_id=thread_id,
+            vault_id=request.vault_id,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -86,15 +175,21 @@ async def agent_stream_endpoint(request: AgentRequest):
 
     Returns Server-Sent Events with status updates.
     """
-    import json
+    # Verify vault exists
+    if not get_vault_manager(request.vault_id):
+        raise HTTPException(
+            status_code=404,
+            detail=f"Vault {request.vault_id} not found. Please upload a vault first using /upload.",
+        )
 
     thread_id = request.thread_id or str(uuid.uuid4())
 
     async def generate():
-        agent = get_agent()
+        agent = get_agent_for_vault(request.vault_id)
 
         initial_state = {
             "original_query": request.query,
+            "vault_id": request.vault_id,
             "reformulated_query": "",
             "search_results": [],
             "knowledge_base": [],
@@ -120,7 +215,7 @@ async def agent_stream_endpoint(request: AgentRequest):
 
                 yield f"data: {json.dumps({'node': node_name, 'output': serializable_output}, ensure_ascii=False)}\n\n"
 
-        yield f"data: {json.dumps({'status': 'complete', 'thread_id': thread_id}, ensure_ascii=False)}\n\n"
+        yield f"data: {json.dumps({'status': 'complete', 'thread_id': thread_id, 'vault_id': request.vault_id}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 
