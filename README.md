@@ -51,16 +51,21 @@ RAG-система для работы с Obsidian-хранилищами зна
 ### 1. Запуск инфраструктуры
 
 ```bash
-# Клонирование
-git clone --recursive <repo-url>
+# Клонирование с подмодулями (HTTPS или SSH - оба работают!)
+git clone --recurse-submodules https://github.com/zettle-casters/obsidian-rag-mcp.git
+# Или через SSH: git clone --recurse-submodules git@github.com:zettle-casters/obsidian-rag-mcp.git
+
 cd obsidian-rag-mcp
+
+# Если уже клонировали без --recurse-submodules:
+# git submodule update --init --recursive
 
 # Настройка окружения
 cp .env.example .env
 # Отредактируйте .env, добавьте OPENAI_API_KEY
 
 # Запуск сервисов
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 ### 2. Загрузка vault
