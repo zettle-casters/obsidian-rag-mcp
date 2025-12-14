@@ -7,3 +7,6 @@
 [submodule "obsidian-rag-api"]
 	path = obsidian-rag-api
 	url = ../obsidian-rag-api.git
+[submodule "obsidian-rag-ui"]
+	path = obsidian-rag-ui
+	url = ../obsidian-rag-ui.git
