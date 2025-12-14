@@ -11,7 +11,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from .agent import run_agent_with_vault, get_agent_for_vault
-from .vault_manager import upload_vault, get_vault_manager, list_vaults
+from .vault_manager import upload_vault, upload_vault_with_progress, get_vault_manager, list_vaults
 from .config import settings
 
 
@@ -119,6 +119,70 @@ async def upload_endpoint(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to upload vault: {str(e)}")
+
+
+@app.post("/upload/stream")
+async def upload_stream_endpoint(
+    file: UploadFile = File(...),
+    include_paths: str = Form(""),
+    exclude_paths: str = Form(""),
+    chunk_size: int = Form(500),
+):
+    """
+    Upload and initialize a vault from a ZIP file with streaming progress updates.
+
+    Args:
+        file: ZIP file containing the Obsidian vault
+        include_paths: Comma-separated list of paths to include (optional)
+        exclude_paths: Comma-separated list of paths to exclude (optional)
+        chunk_size: Maximum chunk size in characters (default: 500)
+
+    Returns:
+        Server-Sent Events stream with progress updates
+    """
+    # Validate file type
+    if not file.filename.endswith(".zip"):
+        raise HTTPException(
+            status_code=400,
+            detail="Only ZIP files are supported. Please upload a .zip file.",
+        )
+
+    # Parse include/exclude paths
+    include_list = [p.strip() for p in include_paths.split(",") if p.strip()]
+    exclude_list = [p.strip() for p in exclude_paths.split(",") if p.strip()]
+
+    async def generate():
+        tmp_path = None
+        try:
+            # Save uploaded file to temporary location
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp_file:
+                content = await file.read()
+                tmp_file.write(content)
+                tmp_path = tmp_file.name
+
+            # Stream progress updates
+            async for progress_update in upload_vault_with_progress(
+                zip_file_path=tmp_path,
+                include_paths=include_list,
+                exclude_paths=exclude_list,
+                chunk_size=chunk_size,
+            ):
+                yield f"data: {json.dumps(progress_update, ensure_ascii=False)}\n\n"
+
+        except Exception as e:
+            error_event = {
+                "stage": "error",
+                "progress": 0,
+                "message": f"Upload failed: {str(e)}",
+                "error": str(e),
+            }
+            yield f"data: {json.dumps(error_event, ensure_ascii=False)}\n\n"
+        finally:
+            # Clean up temporary file
+            if tmp_path and Path(tmp_path).exists():
+                Path(tmp_path).unlink()
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 
 @app.get("/vaults")

@@ -126,6 +126,52 @@ curl -X POST http://localhost:8000/upload \
 }
 ```
 
+### POST /upload/stream
+
+Загружает ZIP-архив с Obsidian vault и **стримит прогресс** через Server-Sent Events.
+
+**Параметры (multipart/form-data):** такие же как у `/upload`
+
+**Пример:**
+```bash
+curl -X POST http://localhost:8000/upload/stream \
+  -F "file=@vault.zip" \
+  -F "chunk_size=500"
+```
+
+**Формат событий (SSE):**
+```json
+data: {"stage": "extracting", "progress": 15, "message": "Extracted 150/1000 files...", "elapsed": "2s", "eta": "11s"}
+
+data: {"stage": "parsing", "progress": 50, "message": "Parsed 42 notes"}
+
+data: {"stage": "processing", "progress": 65, "message": "Processed 20/42 notes...", "elapsed": "5s", "eta": "8s"}
+
+data: {"stage": "storing", "progress": 82, "message": "Stored 35/42 notes...", "elapsed": "45s", "eta": "12s"}
+
+data: {"stage": "linking", "progress": 100, "message": "Link building complete"}
+
+data: {"stage": "complete", "progress": 100, "message": "Vault uploaded successfully", "vault_id": "550e8400-e29b-41d4-a716-446655440000", "notes_count": 42}
+```
+
+**Поля в событиях:**
+- `stage` - текущий этап (extracting, parsing, processing, storing, linking, complete)
+- `progress` - процент завершения (0-100)
+- `message` - описание текущей операции
+- `elapsed` - время с начала текущего этапа (только для длительных операций)
+- `eta` - оценочное время до завершения текущего этапа (только для длительных операций)
+- `vault_id` - UUID vault'а (только в финальном сообщении)
+- `notes_count` - количество обработанных заметок (только в финальном сообщении)
+
+**Этапы загрузки:**
+1. `extracting` (0-30%) - Распаковка ZIP архива
+2. `parsing` (30-50%) - Парсинг markdown файлов
+3. `initializing` (50-55%) - Создание vault manager
+4. `processing` (55-75%) - Обработка заметок и построение графа
+5. `storing` (75-90%) - Сохранение в БД (Neo4j + Qdrant)
+6. `linking` (90-100%) - Построение связей между заметками
+7. `complete` (100%) - Завершение с возвратом `vault_id`
+
 ### GET /vaults
 
 Возвращает список всех загруженных vault'ов.
