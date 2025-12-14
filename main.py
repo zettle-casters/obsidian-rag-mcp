@@ -1,5 +1,3 @@
-"""Main entry point for Obsidian RAG MCP."""
-
 import argparse
 from dotenv import load_dotenv
 
@@ -10,20 +8,17 @@ def main():
     parser = argparse.ArgumentParser(
         description="Obsidian RAG MCP Server and Agent",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Run MCP server with stdio transport
-  python main.py mcp
-
-  # Run MCP server with HTTP transport
-  python main.py mcp --http
-
-  # Run the RAG agent API
-  python main.py agent
-
-  # Run both MCP HTTP and Agent API
-  python main.py all
-        """,
+        epilog=(
+            "Examples:"
+            "  # Run MCP server with stdio transport\n"
+            "  python main.py mcp\n\n"
+            "  # Run MCP server with HTTP transport\n"
+            "  python main.py mcp --http\n\n"
+            "  # Run the RAG agent API\n"
+            "  python main.py agent\n\n"
+            "  # Run both MCP HTTP and Agent API\n"
+            "  python main.py all\n"
+        ),
     )
 
     parser.add_argument(
@@ -52,16 +47,16 @@ Examples:
 
     if args.command == "mcp":
         if args.http:
-            from obsidian_rag_mcp.server_http import main as http_main
+            from obsidian_rag_api.server_http import main as http_main
 
             http_main()
         else:
-            from obsidian_rag_mcp.server import main as stdio_main
+            from obsidian_rag_api.server import main as stdio_main
 
             stdio_main()
 
     elif args.command == "agent":
-        from obsidian_rag_mcp.api import main as api_main
+        from obsidian_rag_api.api import main as api_main
 
         api_main()
 
@@ -69,12 +64,11 @@ Examples:
         # Run both servers concurrently
         import asyncio
         import uvicorn
-        from obsidian_rag_mcp.config import settings
 
         async def run_all():
             # Import apps
-            from obsidian_rag_mcp.api import app as agent_app
-            from obsidian_rag_mcp.server_http import app as mcp_app
+            from obsidian_rag_api.api import app as agent_app
+            from obsidian_rag_api.server_http import app as mcp_app
 
             # Create server configs
             agent_config = uvicorn.Config(

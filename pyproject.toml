@@ -3,30 +3,14 @@ name = "obsidian-rag-mcp"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
-    "langchain>=1.1.0",
-    "langchain-core>=1.2.0",
-    "langchain-community>=0.4.1",
-    "langchain-huggingface>=1.2.0",
-    "sentence-transformers>=3.0.0",
-    "langchain-openai>=1.1.0",
-    "langgraph>=1.0.0",
-    "mcp>=1.0.0",
-    "neomodel>=6.0.0",
-    "numpy>=2.3.5",
     "obsidian-parser",
     "obsidian-retriever",
-    "pydantic>=2.12.5",
-    "pydantic-settings>=2.0.0",
-    "qdrant-client>=1.16.2",
-    "uvicorn>=0.34.0",
-    "fastapi>=0.115.0",
-    "httpx>=0.28.0",
-    "python-dotenv>=1.2.1",
+    "obsidian-rag-api"
 ]
 
 [project.scripts]
-obsidian-mcp = "obsidian_rag_mcp.server:main"
-obsidian-agent = "obsidian_rag_mcp.api:main"
+obsidian-mcp = "obsidian_rag_api.server:main"
+obsidian-agent = "obsidian_rag_api.api:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -39,8 +23,10 @@ packages = ["src/obsidian_rag_mcp"]
 members = [
     "obsidian-parser",
     "ObsidianRetriever",
+    "obsidian-rag-api"
 ]
 
 [tool.uv.sources]
 obsidian-parser = { workspace = true, editable = true }
 obsidian-retriever = { workspace = true, editable = true }
+obsidian-rag-api = { workspace = true, editable = true }

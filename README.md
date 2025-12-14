@@ -512,10 +512,3 @@ obsidian-rag-mcp/
 - **MCP** — Model Context Protocol
 - **OpenAI embeddings** — text-embedding-3-large
 
-## Дополнительная документация
-
-- [USAGE.md](USAGE.md) — Подробное руководство с примерами
-
-## Лицензия
-
-MIT

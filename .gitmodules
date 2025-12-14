@@ -4,3 +4,6 @@
 [submodule "obsidian-parser"]
 	path = obsidian-parser
 	url = git@github.com:zettle-casters/obsidian-parser.git
+[submodule "obsidian-rag-api"]
+	path = obsidian-rag-api
+	url = git@github.com:zettle-casters/obsidian-rag-api.git
