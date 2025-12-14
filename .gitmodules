@@ -9,4 +9,4 @@
 	url = ../obsidian-rag-api.git
 [submodule "obsidian-rag-ui"]
 	path = obsidian-rag-ui
-	url = git@github.com:zettle-casters/obsidian-rag-ui.git
+	url = ../obsidian-rag-ui.git
