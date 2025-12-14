@@ -35,6 +35,9 @@ class AgentState(TypedDict):
     original_query: str
     vault_id: str
 
+    # Conversation history
+    messages: Annotated[list[dict], operator.add]
+
     # Working state
     reformulated_query: str
     search_results: list[dict]
@@ -51,13 +54,20 @@ class AgentState(TypedDict):
 async def reformulate_node(state: AgentState) -> dict:
     """Reformulate the user query for better search."""
     original = state["original_query"]
-    reformulated = await reformulate_query(original)
+
+    # Get conversation history for context-aware reformulation
+    history = state.get("messages", [])
+    reformulated = await reformulate_query(original, history)
+
+    # Add user message to history
+    new_messages = [{"role": "user", "content": original}]
 
     return {
         "reformulated_query": reformulated,
         "explored_notes": set(),
         "knowledge_base": [],
         "current_depth": 0,
+        "messages": new_messages,
     }
 
 
@@ -222,6 +232,7 @@ async def generate_answer_node(state: AgentState) -> dict:
     """Generate final answer from accumulated knowledge."""
     query = state["original_query"]
     knowledge = state["knowledge_base"]
+    history = state.get("messages", [])
 
     # Deduplicate by note_id, keeping lowest depth
     seen = {}
@@ -233,16 +244,17 @@ async def generate_answer_node(state: AgentState) -> dict:
     unique_knowledge = list(seen.values())
 
     if not unique_knowledge:
-        return {
-            "final_answer": "I couldn't find any relevant information in the knowledge base to answer your question.",
-            "status": "complete",
-        }
+        answer = "I couldn't find any relevant information in the knowledge base to answer your question."
+    else:
+        answer = await generate_answer(query, unique_knowledge, history)
 
-    answer = await generate_answer(query, unique_knowledge)
+    # Add assistant response to history
+    new_messages = [{"role": "assistant", "content": answer}]
 
     return {
         "final_answer": answer,
         "status": "complete",
+        "messages": new_messages,
     }
 
 
@@ -315,6 +327,7 @@ async def run_agent_with_vault(query: str, vault_id: str, thread_id: str = "defa
     initial_state = {
         "original_query": query,
         "vault_id": vault_id,
+        "messages": [],
         "reformulated_query": "",
         "search_results": [],
         "knowledge_base": [],

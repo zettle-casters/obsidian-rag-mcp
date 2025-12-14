@@ -60,9 +60,11 @@ async def check_relevance_batch(
     return await asyncio.gather(*tasks)
 
 
-async def reformulate_query(original_query: str) -> str:
+async def reformulate_query(original_query: str, history: list[dict] = None) -> str:
     """Reformulate user query for better search results."""
     llm = get_llm(cheap=True)
+
+    history = history or []
 
     system_prompt = """You are a query reformulator. Your task is to reformulate user questions to make them better for semantic search.
 
@@ -71,9 +73,19 @@ Rules:
 2. Expand abbreviations if any
 3. Add relevant synonyms or related terms
 4. Make the query more specific if it's too vague
-5. Return ONLY the reformulated query, nothing else"""
+5. If there is conversation history, use it for context to understand what the user is asking about
+6. Return ONLY the reformulated query, nothing else"""
 
-    user_prompt = f"Reformulate this query for semantic search: {original_query}"
+    # Build context from history
+    history_text = ""
+    if history:
+        history_text = "\n\nConversation history:\n"
+        for msg in history:
+            role = msg.get("role", "")
+            content = msg.get("content", "")
+            history_text += f"{role}: {content}\n"
+
+    user_prompt = f"Reformulate this query for semantic search: {original_query}{history_text}"
 
     messages = [
         SystemMessage(content=system_prompt),
@@ -84,9 +96,11 @@ Rules:
     return response.content.strip()
 
 
-async def generate_answer(query: str, context: list[dict[str, Any]]) -> str:
+async def generate_answer(query: str, context: list[dict[str, Any]], history: list[dict] = None) -> str:
     """Generate final answer based on gathered context."""
     llm = get_llm(cheap=False)
+
+    history = history or []
 
     # Format context
     context_text = ""
@@ -101,9 +115,20 @@ Rules:
 1. Answer based ONLY on the information in the provided notes
 2. If the notes don't contain enough information, say so
 3. Reference which notes you used when appropriate
-4. Be concise but thorough"""
+4. Be concise but thorough
+5. If there is conversation history, use it for context to provide coherent follow-up answers"""
 
-    user_prompt = f"""Question: {query}
+    # Build history context
+    history_text = ""
+    if history:
+        history_text = "\n\nConversation history:\n"
+        for msg in history:
+            role = msg.get("role", "")
+            content = msg.get("content", "")
+            history_text += f"{role}: {content}\n"
+        history_text += "\n"
+
+    user_prompt = f"""{history_text}Question: {query}
 
 Context from knowledge base:
 {context_text}
