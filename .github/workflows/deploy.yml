@@ -1,0 +1,50 @@
+name: Deploy Dev
+on:
+  push:
+    branches: [dev]
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Copy to target directory
+        run: |
+          sudo rm -rf /home/idfedorov09/obsidian-rag-mcp
+          sudo cp -r $GITHUB_WORKSPACE /home/idfedorov09/obsidian-rag-mcp
+          sudo chown -R $(whoami):$(whoami) /home/idfedorov09/obsidian-rag-mcp
+
+      - name: Create .env files
+        working-directory: /home/idfedorov09/obsidian-rag-mcp
+        run: |
+          cat > .env << EOF
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL=https://openrouter.ai/api/v1
+          EMBEDDINGS_MODEL=openai/text-embedding-3-large
+
+          OPENAI_MODEL=openai/gpt-oss-120b
+          OPENAI_CHEAP_MODEL=openai/gpt-oss-20b
+          MAX_RECURSION_DEPTH=5
+          SEARCH_TOP_K=5
+          EOF
+          chmod 600 .env
+
+          # SUBMODULES
+          cat > obsidian-rag-ui/.env.production << EOF
+          NEXT_PUBLIC_API_URL=https://demo.zettle-casters.ru/api
+          EOF
+          chmod 600 obsidian-rag-ui/.env.production
+
+      - name: Deploy
+        working-directory: /home/idfedorov09/obsidian-rag-mcp
+        run: |
+          docker compose up -d --build
+
