@@ -62,12 +62,25 @@ services:
 
       # Embeddings
       - EMBEDDINGS_MODEL=${EMBEDDINGS_MODEL:-openai/text-embedding-3-large}
+    volumes:
+      - vaults_metadata:/app/data
     depends_on:
       neo4j:
         condition: service_healthy
       qdrant:
         condition: service_healthy
 
+  # Web UI
+  obsidian-rag-ui:
+    build:
+      context: ./obsidian-rag-ui
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"  # Web UI
+    depends_on:
+      - obsidian-rag
+
 volumes:
   neo4j_data:
   qdrant_data:
+  vaults_metadata:

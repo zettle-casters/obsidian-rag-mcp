@@ -68,38 +68,49 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-### 2. Загрузка vault
+### 2. Откройте веб-интерфейс
 
 ```bash
-# Создайте ZIP из вашего Obsidian vault
-cd /path/to/your/ObsidianVault
-zip -r vault.zip .
+# Откройте в браузере
+open http://localhost:3000
+```
 
-# Загрузите через API
+**Веб-интерфейс** предоставляет удобный способ работы:
+- 🎯 Drag-and-drop загрузка vault'ов (просто перетащите .zip файл)
+- 📊 Визуализация прогресса обработки в реальном времени
+- 💬 Интерактивный чат с RAG агентом
+- 📁 Просмотр всех загруженных vault'ов
+
+### 3. Использование через веб-интерфейс
+
+1. Создайте ZIP из вашего Obsidian vault:
+   ```bash
+   cd /path/to/your/ObsidianVault
+   zip -r vault.zip .
+   ```
+
+2. Перетащите `vault.zip` на главную страницу или нажмите "Загрузить Vault"
+
+3. Дождитесь завершения обработки (прогресс отображается в реальном времени)
+
+4. Выберите загруженное хранилище и начните задавать вопросы!
+
+### Альтернатива: Использование через API
+
+Также можно работать напрямую через REST API:
+
+```bash
+# Загрузка vault
 curl -X POST http://localhost:8000/upload \
   -F "file=@vault.zip" \
   -F "chunk_size=500"
-
-# Ответ:
-# {
-#   "vault_id": "550e8400-e29b-41d4-a716-446655440000",
-#   "message": "Vault uploaded successfully. Use this vault_id in your queries.",
-#   "status": "success"
-# }
-```
-
-### 3. Задайте вопрос
-
-```bash
-# Сохраните vault_id из предыдущего шага
-VAULT_ID="550e8400-e29b-41d4-a716-446655440000"
 
 # Запрос к агенту
 curl -X POST http://localhost:8000/agent \
   -H "Content-Type: application/json" \
   -d "{
     \"query\": \"Что такое квантовая механика?\",
-    \"vault_id\": \"$VAULT_ID\"
+    \"vault_id\": \"your-vault-id\"
   }"
 ```
 
@@ -441,6 +452,7 @@ docker-compose up -d --build
 
 | Сервис        | Порт | Назначение              |
 |---------------|------|-------------------------|
+| **Web UI**    | **3000** | **Веб-интерфейс**       |
 | Neo4j Browser | 7474 | UI для просмотра графа  |
 | Neo4j Bolt    | 7687 | API графовой БД         |
 | Qdrant        | 6333 | Векторный поиск         |
@@ -450,17 +462,11 @@ docker-compose up -d --build
 ### Проверка
 
 ```bash
-# Health check
+# Откройте веб-интерфейс в браузере
+open http://localhost:3000
+
+# Health check API
 curl http://localhost:8000/health
-
-# Upload vault
-curl -X POST http://localhost:8000/upload \
-  -F "file=@vault.zip"
-
-# Test query (используйте vault_id из предыдущего ответа)
-curl -X POST http://localhost:8000/agent \
-  -H "Content-Type: application/json" \
-  -d '{"query": "Test question", "vault_id": "your-vault-id"}'
 ```
 
 ## Конфигурация
@@ -484,6 +490,9 @@ obsidian-rag-mcp/                    # Главный проект (orchestrator
 ├── Dockerfile                       # Контейнер с API и MCP серверами
 ├── pyproject.toml                   # UV workspace configuration
 │
+├── obsidian-rag-ui/                 # 🖥️  Веб-интерфейс (Next.js)
+│   └── ...                          # Next.js + React
+│
 ├── obsidian-rag-api/                # 📦 Подмодуль: API и MCP серверы
 │   ├── src/obsidian_rag_api/
 │   │   ├── config.py                # Настройки из ENV
@@ -502,15 +511,22 @@ obsidian-rag-mcp/                    # Главный проект (orchestrator
     └── ...                          # Парсинг Obsidian заметок
 ```
 
-### Подмодули
+### Компоненты
 
-Проект использует **git submodules** и **uv workspace** для модульной архитектуры:
+Проект состоит из следующих компонентов:
 
-1. **obsidian-rag-api** — API сервер, MCP серверы и LangGraph агент ([README](./obsidian-rag-api/README.md))
-2. **ObsidianRetriever** — взаимодействие с Neo4j и Qdrant
-3. **obsidian-parser** — парсинг markdown файлов Obsidian
+1. **obsidian-rag-ui** — Веб-интерфейс на Next.js с минималистичным дизайном (GitHub-style)
+   - Drag-and-drop загрузка vault'ов
+   - Стриминг прогресса обработки
+   - Интерактивный чат с RAG агентом
 
-Все подмодули автономны и могут использоваться отдельно.
+2. **obsidian-rag-api** — API сервер, MCP серверы и LangGraph агент ([README](./obsidian-rag-api/README.md))
+
+3. **ObsidianRetriever** — взаимодействие с Neo4j и Qdrant
+
+4. **obsidian-parser** — парсинг markdown файлов Obsidian
+
+Подмодули автономны и могут использоваться отдельно.
 
 ## Важные замечания
 
@@ -527,12 +543,22 @@ obsidian-rag-mcp/                    # Главный проект (orchestrator
 
 ## Технологии
 
+### Backend
 - **LangChain / LangGraph** — оркестрация LLM
 - **Neo4j** — графовая БД для связей между заметками
 - **Qdrant** — векторная БД для семантического поиска
-- **FastAPI** — REST API
+- **FastAPI** — REST API с поддержкой SSE
 - **MCP** — Model Context Protocol
 - **OpenAI embeddings** — text-embedding-3-large
 - **uv** — современный менеджер пакетов и workspace manager
+
+### Frontend
+- **Next.js 15** — React фреймворк
+- **TypeScript** — типизация
+- **Tailwind CSS** — стилизация
+- **shadcn/ui** — UI компоненты
+- **Lucide Icons** — иконки
+
+### Infrastructure
 - **Docker Compose** — оркестрация сервисов
 

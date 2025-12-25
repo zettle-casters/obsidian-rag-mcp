@@ -19,6 +19,9 @@ COPY main.py ./
 # Sync all dependencies using uv workspace
 RUN uv sync --frozen
 
+# Create directory for persistent data (vaults metadata)
+RUN mkdir -p /app/data
+
 # Expose ports for Agent API and MCP HTTP Server
 EXPOSE 8000 8001
 
