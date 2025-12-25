@@ -12,6 +12,7 @@ COPY pyproject.toml uv.lock ./
 COPY obsidian-parser ./obsidian-parser
 COPY ObsidianRetriever ./ObsidianRetriever
 COPY obsidian-rag-api ./obsidian-rag-api
+COPY obsidian_rag_tests ./obsidian_rag_tests
 
 # Copy main entry point
 COPY main.py ./
