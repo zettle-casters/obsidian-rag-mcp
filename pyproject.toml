@@ -5,7 +5,8 @@ requires-python = ">=3.13"
 dependencies = [
     "obsidian-parser",
     "obsidian-retriever",
-    "obsidian-rag-api"
+    "obsidian-rag-api",
+    "obsidian-rag-tests"
 ]
 
 [project.scripts]
@@ -23,10 +24,12 @@ packages = ["src/obsidian_rag_mcp"]
 members = [
     "obsidian-parser",
     "ObsidianRetriever",
-    "obsidian-rag-api"
+    "obsidian-rag-api",
+    "obsidian_rag_tests"
 ]
 
 [tool.uv.sources]
 obsidian-parser = { workspace = true, editable = true }
 obsidian-retriever = { workspace = true, editable = true }
 obsidian-rag-api = { workspace = true, editable = true }
+obsidian-rag-tests = { workspace = true, editable = true }
