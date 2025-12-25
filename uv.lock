@@ -11,6 +11,7 @@ members = [
     "obsidian-parser",
     "obsidian-rag-api",
     "obsidian-rag-mcp",
+    "obsidian-rag-tests",
     "obsidian-retriever",
 ]
 
@@ -1422,6 +1423,7 @@ source = { editable = "." }
 dependencies = [
     { name = "obsidian-parser" },
     { name = "obsidian-rag-api" },
+    { name = "obsidian-rag-tests" },
     { name = "obsidian-retriever" },
 ]
 
@@ -1429,8 +1431,14 @@ dependencies = [
 requires-dist = [
     { name = "obsidian-parser", editable = "obsidian-parser" },
     { name = "obsidian-rag-api", editable = "obsidian-rag-api" },
+    { name = "obsidian-rag-tests", editable = "obsidian_rag_tests" },
     { name = "obsidian-retriever", editable = "ObsidianRetriever" },
 ]
+
+[[package]]
+name = "obsidian-rag-tests"
+version = "0.1.0"
+source = { editable = "obsidian_rag_tests" }
 
 [[package]]
 name = "obsidian-retriever"
