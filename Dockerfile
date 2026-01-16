@@ -11,15 +11,6 @@ RUN pip install --no-cache-dir uv
 # Copy workspace configuration
 COPY pyproject.toml uv.lock ./
 
-# Copy dependency manifests first to maximize cache hits
-COPY obsidian-parser/pyproject.toml obsidian-parser/uv.lock obsidian-parser/README.md ./obsidian-parser/
-COPY ObsidianRetriever/pyproject.toml ObsidianRetriever/uv.lock ObsidianRetriever/README.md ./ObsidianRetriever/
-COPY obsidian-rag-api/pyproject.toml obsidian-rag-api/uv.lock obsidian-rag-api/README.md ./obsidian-rag-api/
-COPY obsidian_rag_tests/pyproject.toml obsidian_rag_tests/README.md ./obsidian_rag_tests/
-
-# Sync all dependencies using uv workspace
-RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev
-
 # Copy all submodules
 COPY obsidian-parser ./obsidian-parser
 COPY ObsidianRetriever ./ObsidianRetriever
@@ -28,6 +19,9 @@ COPY obsidian_rag_tests ./obsidian_rag_tests
 
 # Copy main entry point
 COPY main.py ./
+
+# Sync all dependencies using uv workspace
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev
 
 # Create directory for persistent data (vaults metadata)
 RUN mkdir -p /app/data
