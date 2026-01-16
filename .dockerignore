@@ -1,0 +1,13 @@
+.git
+.github
+.idea
+.venv
+.env
+.env.example
+.vaults_metadata.json
+vault
+obsidian-rag-ui
+node_modules
+**/__pycache__
+**/*.pyc
+*.log

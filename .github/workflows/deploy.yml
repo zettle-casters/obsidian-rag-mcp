@@ -10,6 +10,9 @@ concurrency:
 jobs:
   deploy:
     runs-on: self-hosted
+    env:
+      DOCKER_BUILDKIT: 1
+      COMPOSE_DOCKER_CLI_BUILD: 1
     steps:
       - uses: actions/checkout@v4
         with:
@@ -47,4 +50,3 @@ jobs:
         working-directory: /home/idfedorov09/obsidian-rag-mcp
         run: |
           docker compose up -d --build
-
