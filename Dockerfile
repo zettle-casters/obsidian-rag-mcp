@@ -21,6 +21,8 @@ RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev
 
 # Copy backend sources
 COPY obsidian-rag-api/src ./src
+COPY obsidian-rag-api/alembic.ini ./alembic.ini
+COPY obsidian-rag-api/alembic ./alembic
 COPY obsidian-rag-api/README.md ./README.md
 
 # Copy main entry point
