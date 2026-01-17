@@ -10,11 +10,15 @@ RUN pip install --no-cache-dir uv
 
 # Copy project configuration
 COPY obsidian-rag-api/pyproject.toml obsidian-rag-api/uv.lock ./
+COPY obsidian-rag-api/pyproject.toml obsidian-rag-api/uv.lock ./obsidian-rag-api/
 
 # Copy minimal package markers to maximize cache hits
 COPY obsidian-rag-api/src/obsidian_rag_api/__init__.py obsidian-rag-api/src/obsidian_rag_api/py.typed ./src/obsidian_rag_api/
 COPY obsidian-rag-api/src/obsidian_parser/__init__.py obsidian-rag-api/src/obsidian_parser/py.typed ./src/obsidian_parser/
 COPY obsidian-rag-api/src/obsidian_retriever/__init__.py obsidian-rag-api/src/obsidian_retriever/py.typed ./src/obsidian_retriever/
+COPY obsidian-rag-api/src/obsidian_rag_api/__init__.py obsidian-rag-api/src/obsidian_rag_api/py.typed ./obsidian-rag-api/src/obsidian_rag_api/
+COPY obsidian-rag-api/src/obsidian_parser/__init__.py obsidian-rag-api/src/obsidian_parser/py.typed ./obsidian-rag-api/src/obsidian_parser/
+COPY obsidian-rag-api/src/obsidian_retriever/__init__.py obsidian-rag-api/src/obsidian_retriever/py.typed ./obsidian-rag-api/src/obsidian_retriever/
 
 # Sync dependencies
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev
