@@ -502,27 +502,16 @@ obsidian-rag-mcp/                    # Главный проект (orchestrator
 ├── main.py                          # Entry point для запуска всех компонентов
 ├── docker-compose.yml               # Docker инфраструктура
 ├── Dockerfile                       # Контейнер с API и MCP серверами
-├── pyproject.toml                   # UV workspace configuration
+├── pyproject.toml                   # Python/UV конфигурация
 │
 ├── obsidian-rag-ui/                 # 🖥️  Веб-интерфейс (Next.js)
 │   └── ...                          # Next.js + React
 │
 ├── obsidian-rag-api/                # 📦 Подмодуль: API и MCP серверы
-│   ├── src/obsidian_rag_api/
-│   │   ├── config.py                # Настройки из ENV
-│   │   ├── vault_manager.py         # Управление vault'ами через UUID
-│   │   ├── llm.py                   # LLM утилиты
-│   │   ├── server.py                # MCP Server (stdio)
-│   │   ├── server_http.py           # MCP Server (HTTP)
-│   │   ├── agent.py                 # LangGraph агент с vault_id
-│   │   └── api.py                   # FastAPI endpoints + /upload
+│   ├── src/obsidian_rag_api/        # Backend (DDD слои + интерфейсы)
+│   ├── src/obsidian_retriever/      # Локальный пакет: Neo4j + Qdrant
+│   └── src/obsidian_parser/         # Локальный пакет: парсер Markdown
 │   └── pyproject.toml
-│
-├── ObsidianRetriever/               # 📦 Подмодуль: управление знаниями
-│   └── ...                          # Neo4j + Qdrant интеграция
-│
-└── obsidian-parser/                 # 📦 Подмодуль: парсер markdown
-    └── ...                          # Парсинг Obsidian заметок
 ```
 
 ### Компоненты
@@ -536,11 +525,9 @@ obsidian-rag-mcp/                    # Главный проект (orchestrator
 
 2. **obsidian-rag-api** — API сервер, MCP серверы и LangGraph агент ([README](./obsidian-rag-api/README.md))
 
-3. **ObsidianRetriever** — взаимодействие с Neo4j и Qdrant
+3. **obsidian_retriever** — интеграция с Neo4j и Qdrant (внутри backend)
 
-4. **obsidian-parser** — парсинг markdown файлов Obsidian
-
-Подмодули автономны и могут использоваться отдельно.
+4. **obsidian_parser** — парсинг markdown файлов Obsidian (внутри backend)
 
 ## Важные замечания
 

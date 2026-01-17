@@ -8,11 +8,8 @@ resolution-markers = [
 
 [manifest]
 members = [
-    "obsidian-parser",
     "obsidian-rag-api",
     "obsidian-rag-mcp",
-    "obsidian-rag-tests",
-    "obsidian-retriever",
 ]
 
 [[package]]
@@ -1361,17 +1358,6 @@ wheels = [
 ]
 
 [[package]]
-name = "obsidian-parser"
-version = "0.1.0"
-source = { editable = "obsidian-parser" }
-dependencies = [
-    { name = "langchain-community" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "langchain-community", specifier = ">=0.4.1" }]
-
-[[package]]
 name = "obsidian-rag-api"
 version = "0.1.0"
 source = { editable = "obsidian-rag-api" }
@@ -1425,45 +1411,11 @@ name = "obsidian-rag-mcp"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "obsidian-parser" },
     { name = "obsidian-rag-api" },
-    { name = "obsidian-rag-tests" },
-    { name = "obsidian-retriever" },
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "obsidian-parser", editable = "obsidian-parser" },
-    { name = "obsidian-rag-api", editable = "obsidian-rag-api" },
-    { name = "obsidian-rag-tests", editable = "obsidian_rag_tests" },
-    { name = "obsidian-retriever", editable = "ObsidianRetriever" },
-]
-
-[[package]]
-name = "obsidian-rag-tests"
-version = "0.1.0"
-source = { editable = "obsidian_rag_tests" }
-
-[[package]]
-name = "obsidian-retriever"
-version = "0.1.0"
-source = { editable = "ObsidianRetriever" }
-dependencies = [
-    { name = "langchain-community" },
-    { name = "neomodel" },
-    { name = "numpy" },
-    { name = "pydantic" },
-    { name = "qdrant-client" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "langchain-community", specifier = ">=0.4.1" },
-    { name = "neomodel", specifier = ">=6.0.0" },
-    { name = "numpy", specifier = ">=2.3.5" },
-    { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "qdrant-client", specifier = ">=1.16.2" },
-]
+requires-dist = [{ name = "obsidian-rag-api", editable = "obsidian-rag-api" }]
 
 [[package]]
 name = "openai"
