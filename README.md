@@ -259,17 +259,28 @@ curl -X POST http://localhost:8000/agent/stream \
 
 ## MCP Server
 
-MCP (Model Context Protocol) — протокол для интеграции внешних инструментов с LLM. Сервер предоставляет три инструмента:
+MCP (Model Context Protocol) — протокол для интеграции внешних инструментов с LLM. Сервер предоставляет четыре инструмента:
 
 ### Tools
 
 | Tool | Описание | Параметры |
 |------|----------|-----------|
+| `list_vaults` | Возвращает список доступных vault'ов | `query` (опц.), `limit` (опц.) |
 | `read_note` | Читает заметку по ID из указанного vault | `vault_id`, `note_id` |
 | `search` | Семантический поиск заметок в vault | `vault_id`, `query`, `top_k` |
 | `extend_context_using_nearest` | Расширяет контекст связанными заметками | `vault_id`, `note_id`, `query` |
 
 ### Примеры использования MCP
+
+Для MCP HTTP используйте заголовок `Authorization: Bearer <MCP_TOKEN>`.
+
+#### list_vaults
+```json
+{
+  "query": "physics",
+  "limit": 10
+}
+```
 
 #### read_note
 ```json
@@ -301,6 +312,9 @@ MCP (Model Context Protocol) — протокол для интеграции в
 
 - **stdio** — для интеграции с Claude Desktop, Cursor и другими клиентами
 - **HTTP** — REST API на порту 8001 для кастомных интеграций
+
+**Авторизация MCP:** для HTTP используйте `Authorization: Bearer <MCP_TOKEN>`, для stdio задайте `MCP_AUTH_TOKEN` в окружении.
+Токен можно посмотреть в личном кабинете веб‑интерфейса (раздел MCP доступ).
 
 ## LangGraph Agent
 
@@ -572,5 +586,3 @@ RAG-система демонстрирует **высокие значения 
 Модуль переформулировки работает качественно — **Reformulation Quality (4.7/5)** высокая, однако **Reformulation Risk (0.5)** показывает, что примерно в половине случаев переформулированный запрос добавляет лишние предположения. **Appropriate Uncertainty** проявляется в 60% ответов, что в целом отражает здоровый баланс между осторожностью и полезностью.
 
 **Итог:** система — **надёжный и устойчивый RAG-ассистент** с сильными показателями по Answer–Query Alignment и Self-Consistency и низким Hallucination Risk; основные зоны роста — повышение Informational Density, улучшение Reasoning Depth Alignment и снижение Reformulation Risk.
-
-
