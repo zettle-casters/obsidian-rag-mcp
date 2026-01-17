@@ -37,6 +37,21 @@ jobs:
           OPENAI_CHEAP_MODEL=openai/gpt-oss-20b
           MAX_RECURSION_DEPTH=5
           SEARCH_TOP_K=5
+
+          POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+          DATABASE_URL=postgresql+psycopg://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@postgres:5432/${{ secrets.POSTGRES_DB }}
+
+          WEB_ORIGINS=https://demo.zettle-casters.ru
+          UI_BASE_URL=https://demo.zettle-casters.ru
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REDIRECT_URI=${{ secrets.GOOGLE_REDIRECT_URI }}
+          SESSION_COOKIE_NAME=obsidian_session
+          SESSION_TTL_DAYS=30
+          COOKIE_SECURE=true
+          COOKIE_SAMESITE=lax
           EOF
           chmod 600 .env
 

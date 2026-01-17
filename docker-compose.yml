@@ -32,6 +32,24 @@ services:
       retries: 5
       start_period: 5s
 
+  # Postgres - metadata, users, sessions, vault registry
+  postgres:
+    image: postgres:18
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-obsidian}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-obsidian}
+      - POSTGRES_DB=${POSTGRES_DB:-obsidian}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-obsidian} -d ${POSTGRES_DB:-obsidian}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   # Obsidian RAG MCP Server + Agent
   obsidian-rag:
     build:
@@ -62,12 +80,26 @@ services:
 
       # Embeddings
       - EMBEDDINGS_MODEL=${EMBEDDINGS_MODEL:-openai/text-embedding-3-large}
+
+      # Postgres/Auth
+      - DATABASE_URL=${DATABASE_URL:-postgresql+psycopg://${POSTGRES_USER:-obsidian}:${POSTGRES_PASSWORD:-obsidian}@postgres:5432/${POSTGRES_DB:-obsidian}}
+      - WEB_ORIGINS=${WEB_ORIGINS:-http://localhost:3000}
+      - UI_BASE_URL=${UI_BASE_URL:-http://localhost:3000}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-http://localhost:8000/auth/google/callback}
+      - SESSION_COOKIE_NAME=${SESSION_COOKIE_NAME:-obsidian_session}
+      - SESSION_TTL_DAYS=${SESSION_TTL_DAYS:-30}
+      - COOKIE_SECURE=${COOKIE_SECURE:-false}
+      - COOKIE_SAMESITE=${COOKIE_SAMESITE:-lax}
     volumes:
       - vaults_metadata:/app/data
     depends_on:
       neo4j:
         condition: service_healthy
       qdrant:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
 
   # Web UI
@@ -84,3 +116,4 @@ volumes:
   neo4j_data:
   qdrant_data:
   vaults_metadata:
+  postgres_data:
